@@ -1,0 +1,31 @@
+{
+  "name": "emitter",
+  "version": "1.0.0",
+  "description": "EventEmitter in C++",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hij1nx/emitter.git"
+  },
+  "homepage": "https://github.com/thlorenz/ee",
+  "dependencies": {
+    "clib": "~0.2.0"
+  },
+  "src": [
+    "src/events.h",
+  ],
+  "keywords": [
+    "event",
+    "emitter",
+    "observe",
+    "subscribe"
+  ],
+  "author": {
+    "name": "Paolo Fragomeni",
+    "email": "paolo@async.ly",
+    "url": "http://async.ly"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/hij1nx/emitter/blob/master/LICENSE"
+  }
+}
