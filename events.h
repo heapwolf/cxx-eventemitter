@@ -29,11 +29,15 @@ class EventEmitter {
     return static_cast<typename traits<Callback>::fn>(cb);
   }
 
-  int listeners = 0;
+  int _listeners = 0;
 
   public:
 
     int maxListeners = 10;
+
+    int listeners() {
+      return this->_listeners;
+    }
 
     template <typename Callback>
     void on(std::string name, Callback cb) {
@@ -43,10 +47,10 @@ class EventEmitter {
         throw new std::runtime_error("duplicate listener");
       }
 
-      if (++this->listeners >= this->maxListeners) {
+      if (++this->_listeners >= this->maxListeners) {
         std::cout 
           << "warning: possible EventEmitter memory leak detected. " 
-          << this->listeners 
+          << this->_listeners 
           << " listeners added. "
           << std::endl;
       };
@@ -64,6 +68,7 @@ class EventEmitter {
 
     void off() {
       events.clear();
+      this->_listeners = 0;
     }
 
     void off(std::string name) {
@@ -72,6 +77,7 @@ class EventEmitter {
 
       if (it != events.end()) {
         events.erase(it);
+        this->_listeners--;
 
         auto once = events_once.find(name);
         if (once != events_once.end()) {

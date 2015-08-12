@@ -71,6 +71,8 @@ int main (int argc, char* argv[]) {
     count3++;
     ASSERT("events were fired even though all listeners were removed", false);
   });
+
+  ASSERT("the correct number of listeners has been reported", ee.listeners() == 4);
   
   ee.off();
 
