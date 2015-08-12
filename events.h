@@ -2,6 +2,7 @@
 #define __EVENTS_H_
 
 #include <iostream>
+#include <stdexcept>
 #include <functional>
 #include <typeinfo>
 #include <string>
@@ -68,6 +69,7 @@ class EventEmitter {
 
     void off() {
       events.clear();
+      events_once.clear();
       this->_listeners = 0;
     }
 
