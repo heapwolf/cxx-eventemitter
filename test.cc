@@ -1,48 +1,83 @@
-#include <iostream>
+#include <assert.h>
 #include "events.h"
 
-//
-// g++ -o test ./test.cc -std=c++1y
-//
-using namespace std;
+#define ASSERT(message, ...) do { \
+  if(!(__VA_ARGS__)) { \
+    std::cerr << "FAIL: " << message << std::endl; \
+  } \
+  else { \
+    std::cout << "OK: " << message << std::endl; \
+  } \
+} while(0);
 
-//
-// example event type
-//
-struct ExampleEvent {
-
-  //
-  // define how the event can be called and
-  // initialize its members with the values sent.
-  //
-  ExampleEvent(string name, int number) :
-    name(name),
-    number(number)
-  { return;
-  };
+int main (int argc, char* argv[]) {
 
   //
-  // define the members of the event.
+  // sanity test.
   //
-  string name;
-  int number;
-};
+  ASSERT("sanity: true is false", true == false);
+  ASSERT("sanity: true is true", true == true);
 
-int main() {
+  EventEmitter ee;
 
-  Events::EventEmitter ee;
+  ASSERT("maxListeners should be 10", ee.maxListeners == 10);
 
-  ee.on<ExampleEvent>([](auto event) {
-
-    cout << event.name << ": " << event.number << endl;
+  ee.on("event1", [](int a, std::string b) {
+    ASSERT("first arg should be equal to 10", a == 10);
+    ASSERT("second arg should be foo", b == "foo");
   });
 
-  ee.emit(ExampleEvent("hello", 1));
-  ee.emit(ExampleEvent("hello", 2));
-  ee.emit(ExampleEvent("goodbye", 3));
+  ee.emit("event1", 10, (std::string) "foo");
 
-  ee.off<ExampleEvent>();
+  try {
+    ee.on("event1", []() {});
+  }
+  catch(...) {
+    ASSERT("duplicate listener", true);
+  }
+
+  ee.on("event2", []() {
+    ASSERT("no params", true);
+  });
+
+  ee.emit("event2");
+
+  int count1 = 0;
+  ee.on("event3", [&]() {
+    if (++count1 == 10) {
+      ASSERT("event was emitted correct number of times", true);
+    }
+  });
+
+  for (int i = 0; i < 10; i++) {
+    ee.emit("event3");
+  }
+
+  int count2 = 0;
+  ee.on("event4", [&](){
+    count2++;
+    if (count2 > 1) {
+      ASSERT("event was fired after it was removed", false);
+    }
+  });
+
+  ee.emit("event4");
+  ee.off("event4");
+  ee.emit("event4");
+  ee.emit("event4");
+
+  int count3 = 0;
+  ee.on("event5", [&]() {
+    count3++;
+    ASSERT("events were fired even though all listeners were removed", false);
+  });
   
-  ee.emit(ExampleEvent("hello", 1));
+  ee.off();
+
+  ASSERT("no additional events fired after all listeners removed",
+    count1 == 10 &&
+    count2 == 1 &&
+    count3 == 0
+  );
 }
 

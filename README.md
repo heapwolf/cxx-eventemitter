@@ -1,48 +1,55 @@
 # SYNOPSIS
-A minimalist event emitter for C++
+A minimalist event emitter for C++14
 
 # DESCRIPTION
 Event emitters are handy for evented programming, Node.js has a
 [`nice one`](https://github.com/joyent/node/blob/master/lib/events.js).
-
-Instead of a string, why not make the event a struct? Then you have
-arbitrary events that emit the expected number of arguments and the
-correct types.
-
-The scope of this module is small so you can fork it and add the features
-that you think you need. And no shared objects, it's header only!
+This one is similar, but with a few less features. This emitter
+allows you to emit and receive arbitrary/variadic paramaters of equal
+type.
 
 # EXAMPLE
 
 ```cc
-struct ExampleEvent {
-
-  ExampleEvent(string name, int number) 
-    : name(name), number(number) {};
-
-  string name;
-  int number;
-};
+#include "events.h"
 
 int main() {
 
-  Events::EventEmitter ee;
+  EventEmitter ee;
 
-  ee.on<ExampleEvent>([](auto event) {
-
-    cout << event.name << ": " << event.number << endl;
+  ee.on("hello", [](string name, int num) {
+    // ...do something with the values.
   });
 
-  ee.emit(ExampleEvent("hello", 1));
-  ee.emit(ExampleEvent("hello", 2));
-  ee.emit(ExampleEvent("goodbye", 3));
-
-  ee.off<ExampleEvent>();
-  
-  ee.emit(ExampleEvent("hello", 1));
-
-  return 0;
+  ee.emit("hello", "beautiful", 100);
 }
-
 ```
+
+# API
+
+## INSTANCE METHODS
+
+### `void` on(string eventName, lambda callback);
+Listen for an event multiple times.
+
+### `void` once(string eventName, lambda callback);
+Listen for an event only once.
+
+### `void` emit(string eventName [, arg1 [, arg2...]]);
+Emit data for a particular event.
+
+### `void` off(string eventName);
+Remove listener for a particular event.
+
+### `void` off();
+Remove all listeners on the emitter.
+
+### `int` listeners();
+Find out how many listeners had been added to an emitter.
+
+## INSTANCE MEMBERS
+
+### maxListeners
+How many listeners an event emitter should have
+before considering that there is a memory leak.
 

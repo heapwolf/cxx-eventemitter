@@ -1,51 +1,108 @@
 #ifndef __EVENTS_H_
 #define __EVENTS_H_
 
+#include <iostream>
 #include <functional>
-#include <unordered_map>
+#include <typeinfo>
+#include <string>
+#include <map>
 
-namespace Events {
+class EventEmitter {
 
-  class EventEmitter {
-    public:
+  std::map<std::string, void*> events;
+  std::map<std::string, bool> events_once;
 
-      typedef const std::type_info* EventType;
-      typedef std::function<void (void*)> Callback;
-      typedef std::unordered_multimap<EventType, Callback> Listeners;
+  template <typename Callback> 
+  struct traits : public traits<decltype(&Callback::operator())> {
+  };
 
-      Listeners listeners;
+  template <typename ClassType, typename R, typename... Args>
+  struct traits<R(ClassType::*)(Args...) const> {
 
-      template<typename TEvent, typename TListener>
-      void on(const TListener function) 
-      {
-        auto deferred = [=](void* ev) {
-          function(*static_cast<TEvent*>(ev));
-        };
+    typedef std::function<R(Args...)> fn;
+  };
 
-        auto event = &typeid(std::decay<TEvent>);
-        auto pair = std::make_pair(event, deferred);
-        listeners.insert(pair);
+  template <typename Callback>
+  typename traits<Callback>::fn
+  to_function (Callback& cb) {
+
+    return static_cast<typename traits<Callback>::fn>(cb);
+  }
+
+  int listeners = 0;
+
+  public:
+
+    int maxListeners = 10;
+
+    template <typename Callback>
+    void on(std::string name, Callback cb) {
+
+      auto it = events.find(name);
+      if (it != events.end()) {
+        throw new std::runtime_error("duplicate listener");
       }
 
-      template<typename TEvent>
-      void off()
-      {
-        auto type = &typeid(std::decay<TEvent>);
-        auto range = listeners.equal_range(type);
-        listeners.erase(range.first, range.second);
-      }
+      if (++this->listeners >= this->maxListeners) {
+        std::cout 
+          << "warning: possible EventEmitter memory leak detected. " 
+          << this->listeners 
+          << " listeners added. "
+          << std::endl;
+      };
 
-      template<typename TEvent>
-      void emit(TEvent ev)
-      {
-        auto range = listeners.equal_range(&typeid(std::decay<TEvent>));
-        for (auto itr = range.first; itr != range.second; ++itr)
-        {
-          (itr->second)(static_cast<void*>(&ev));
+      auto f = to_function(cb);
+      auto fn = new decltype(f)(to_function(cb));
+      events[name] = static_cast<void*>(fn);
+    }
+
+    template <typename Callback>
+    void once(std::string name, Callback cb) {
+      this->on(name, cb);
+      events_once[name] = true;
+    }
+
+    void off() {
+      events.clear();
+    }
+
+    void off(std::string name) {
+
+      auto it = events.find(name);
+
+      if (it != events.end()) {
+        events.erase(it);
+
+        auto once = events_once.find(name);
+        if (once != events_once.end()) {
+          events_once.erase(once);
         }
       }
-  };
-}
+    }
+
+    template <typename ...Args> 
+    void emit(std::string name, Args... args) {
+
+      auto it = events.find(name);
+      if (it != events.end()) {
+
+        auto cb = events.at(name);
+        auto fp = static_cast<std::function<void(Args...)>*>(cb);
+        (*fp)(args...);
+      }
+
+      auto once = events_once.find(name);
+      if (once != events_once.end()) {
+        this->off(name);
+      }
+    }
+
+    EventEmitter(void) {}
+
+    ~EventEmitter (void) {
+      events.clear();
+    }
+};
 
 #endif
 
