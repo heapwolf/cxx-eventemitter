@@ -3,7 +3,6 @@ language: cpp
 script: make && make test
 
 compiler:
-  - gcc
   - clang
 
 os:
