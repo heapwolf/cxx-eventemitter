@@ -2,11 +2,11 @@
 A minimalist event emitter for C++14.
 
 # DESCRIPTION
-Event emitters are handy for evented programming, Node.js has a
-[`nice one`](https://github.com/joyent/node/blob/master/lib/events.js).
+Event emitters are handy for evented programming, `node.js`/`io.js` 
+has a [`nice one`](https://iojs.org/api/events.html).
 This one is similar, but with a few less features. This emitter
-allows you to emit and receive arbitrary/variadic paramaters of equal
-type.
+allows you to emit and receive arbitrary/variadic paramaters of 
+equal type.
 
 # BUILD STATUS
 ![build-status](https://travis-ci.org/hij1nx/cpp-eventemitter.svg)

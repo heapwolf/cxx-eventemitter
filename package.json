@@ -1,20 +1,22 @@
 {
-  "name": "emitter",
-  "version": "1.0.0",
-  "description": "EventEmitter in C++",
+  "name": "eventemitter",
+  "version": "2.0.0",
+  "description": "EventEmitter for C++14",
   "repository": {
     "type": "git",
     "url": "git://github.com/hij1nx/emitter.git"
   },
-  "homepage": "https://github.com/thlorenz/ee",
+  "homepage": "https://github.com/hij1nx/cpp-eventemitter",
   "dependencies": {
     "clib": "~0.2.0"
   },
   "src": [
-    "src/events.h",
+    "events.h"
   ],
   "keywords": [
     "event",
+    "listener",
+    "eventemitter",
     "emitter",
     "observe",
     "subscribe"
