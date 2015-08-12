@@ -8,6 +8,9 @@ This one is similar, but with a few less features. This emitter
 allows you to emit and receive arbitrary/variadic paramaters of equal
 type.
 
+# BUILD STATUS
+![build-status](https://travis-ci.org/hij1nx/cpp-eventemitter.svg)
+
 # EXAMPLE
 
 ```cc
