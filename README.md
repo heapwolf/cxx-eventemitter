@@ -1,5 +1,5 @@
 # SYNOPSIS
-A minimalist event emitter for C++14
+A minimalist event emitter for C++14.
 
 # DESCRIPTION
 Event emitters are handy for evented programming, Node.js has a
