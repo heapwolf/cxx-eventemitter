@@ -11,7 +11,7 @@ equal type. Captures are also allowed.
 # EXAMPLE
 
 ```c++
-#include "events.h"
+#include "deps/datcxx/cxx-eventemitter/index.h"
 
 int main() {
 
