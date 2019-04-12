@@ -1,17 +1,17 @@
 {
   "name": "eventemitter",
-  "version": "2.0.0",
-  "description": "EventEmitter for C++14",
+  "description": "EventEmitter for C++",
   "repository": {
     "type": "git",
-    "url": "git://github.com/hij1nx/emitter.git"
+    "url": "git://github.com/datcxx/cxx-eventemitter.git"
   },
-  "homepage": "https://github.com/hij1nx/cpp-eventemitter",
-  "dependencies": {
-    "clib": "~0.2.0"
+  "homepage": "https://github.com/datcxx/cxx-eventemitter",
+  "dependencies": {},
+  "scripts": {
+    "test": "c++ -std=c++2a test/index.cxx -o test/index && ./test/index"
   },
-  "src": [
-    "events.h"
+  "files": [
+    "index.hxx"
   ],
   "keywords": [
     "event",
@@ -26,8 +26,5 @@
     "email": "paolo@async.ly",
     "url": "http://async.ly"
   },
-  "license": {
-    "type": "MIT",
-    "url": "https://github.com/hij1nx/emitter/blob/master/LICENSE"
-  }
+  "license": "MIT"
 }

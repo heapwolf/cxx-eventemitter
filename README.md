@@ -1,26 +1,23 @@
 # SYNOPSIS
-A minimalist event emitter for C++14.
+A minimalist event emitter for `C++`.
 
 # DESCRIPTION
-Event emitters are handy for evented programming, `node.js`/`io.js` 
-has a [`nice one`](https://iojs.org/api/events.html).
-This one is similar, but with a few less features. This emitter
-allows you to emit and receive arbitrary/variadic paramaters of 
-equal type.
+This emitter allows you to emit and receive arbitrary/variadic paramaters of 
+equal type. Captures are also allowed.
 
 # BUILD STATUS
-![build-status](https://travis-ci.org/hij1nx/cpp-eventemitter.svg)
+![build-status](https://travis-ci.org/datcxx/cpp-eventemitter.svg)
 
 # EXAMPLE
 
-```cc
+```c++
 #include "events.h"
 
 int main() {
 
   EventEmitter ee;
 
-  ee.on("hello", [](string name, int num) {
+  ee.on("hello", [&](string name, int num) {
     // ...do something with the values.
   });
 
@@ -36,7 +33,7 @@ int main() {
 Listen for an event multiple times.
 
 ### `void` once(string eventName, lambda callback);
-Listen for an event only once.
+Listen for an event once.
 
 ### `void` emit(string eventName [, arg1 [, arg2...]]);
 Emit data for a particular event.
@@ -48,11 +45,11 @@ Remove listener for a particular event.
 Remove all listeners on the emitter.
 
 ### `int` listeners();
-Find out how many listeners had been added to an emitter.
+Number of listeners an emitter has.
 
 ## INSTANCE MEMBERS
 
 ### maxListeners
-How many listeners an event emitter should have
+Number of listeners an event emitter should have
 before considering that there is a memory leak.
 
