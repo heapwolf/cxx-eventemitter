@@ -25,6 +25,20 @@ int main() {
 }
 ```
 
+# USAGE
+This module is designed to work with the [`datcxx`][0] build tool. To add this
+module to your project us the following command...
+
+```bash
+build add datcxx/cxx-eventemitter
+```
+
+# TEST
+
+```bash
+build run test
+```
+
 # API
 
 ## INSTANCE METHODS
@@ -53,3 +67,4 @@ Number of listeners an emitter has.
 Number of listeners an event emitter should have
 before considering that there is a memory leak.
 
+[0]:https://github.com/datcxx/build
