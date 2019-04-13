@@ -9,7 +9,6 @@
 #include <map>
 
 class EventEmitter {
-
   std::map<std::string, void*> events;
   std::map<std::string, bool> events_once;
 
@@ -33,7 +32,6 @@ class EventEmitter {
   int _listeners = 0;
 
   public:
-
     int maxListeners = 10;
 
     int listeners() {
@@ -41,7 +39,7 @@ class EventEmitter {
     }
 
     template <typename Callback>
-    void on(std::string name, Callback cb) {
+    void on(const std::string& name, Callback cb) {
 
       auto it = events.find(name);
       if (it != events.end()) {
@@ -62,7 +60,7 @@ class EventEmitter {
     }
 
     template <typename Callback>
-    void once(std::string name, Callback cb) {
+    void once(const std::string& name, Callback cb) {
       this->on(name, cb);
       events_once[name] = true;
     }
@@ -73,7 +71,7 @@ class EventEmitter {
       this->_listeners = 0;
     }
 
-    void off(std::string name) {
+    void off(const std::string& name) {
 
       auto it = events.find(name);
 

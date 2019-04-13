@@ -6,9 +6,17 @@
     "url": "git://github.com/datcxx/cxx-eventemitter.git"
   },
   "homepage": "https://github.com/datcxx/cxx-eventemitter",
-  "dependencies": {},
+  "dependencies": {
+  },
   "scripts": {
-    "test": "c++ -std=c++2a test/index.cxx -o test/index && ./test/index"
+    "test": [
+      "clang++ -std=c++2a",
+      "-O1 -g -fsanitize=address -fno-omit-frame-pointer",
+      "test/index.cxx -o test/index &&",
+      "ASAN_OPTIONS=detect_leaks=1",
+      "ASAN_OPTIONS=fast_unwind_on_malloc=0",
+      "./test/index"
+    ]
   },
   "files": [
     "index.hxx"

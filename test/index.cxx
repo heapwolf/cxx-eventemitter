@@ -12,7 +12,7 @@
   } \
 } while(0);
 
-int main (int argc, char* argv[]) {
+int main () {
   int testcount = 0;
   int testplan = 9;
 
@@ -25,7 +25,7 @@ int main (int argc, char* argv[]) {
 
   ASSERT("maxListeners should be 10", ee.maxListeners == 10);
 
-  ee.on("event1", [&](int a, std::string b) {
+  ee.on("event1", [&](int a, std::string& b) {
     ASSERT("first arg should be equal to 10", a == 10);
     ASSERT("second arg should be foo", b == "foo");
   });
