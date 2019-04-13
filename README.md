@@ -5,9 +5,6 @@ A minimalist event emitter for `C++`.
 This emitter allows you to emit and receive arbitrary/variadic paramaters of 
 equal type. Captures are also allowed.
 
-# BUILD STATUS
-![build-status](https://travis-ci.org/datcxx/cpp-eventemitter.svg)
-
 # EXAMPLE
 
 ```c++
