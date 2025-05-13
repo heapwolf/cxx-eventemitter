@@ -2,113 +2,209 @@
 #define __EVENTS_H_
 
 #include <iostream>
-#include <stdexcept>
 #include <functional>
-#include <typeinfo>
 #include <string>
 #include <map>
+#include <vector>
+#include <any>
+#include <tuple>
+#include <utility>
+#include <type_traits>
+#include <algorithm>
+#include <mutex>
 
 class EventEmitter {
-  std::map<std::string, void*> events;
-  std::map<std::string, bool> events_once;
-
-  template <typename Callback> 
-  struct traits : public traits<decltype(&Callback::operator())> {
+  struct ListenerWrapper {
+    std::any callback;
+    bool is_once;
   };
+
+  std::map<std::string, std::vector<ListenerWrapper>> events;
+  int _listeners = 0;
+  mutable std::mutex mtx_;
+
+  template <typename Callable>
+  struct traits : public traits<decltype(&std::decay_t<Callable>::operator())> {};
 
   template <typename ClassType, typename R, typename... Args>
   struct traits<R(ClassType::*)(Args...) const> {
-
-    typedef std::function<R(Args...)> fn;
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename ClassType, typename R, typename... Args>
+  struct traits<R(ClassType::*)(Args...) const noexcept> {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename ClassType, typename R, typename... Args>
+  struct traits<R(ClassType::*)(Args...) > {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename ClassType, typename R, typename... Args>
+  struct traits<R(ClassType::*)(Args...) noexcept> {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename R, typename... Args>
+  struct traits<R(*)(Args...)> {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename R, typename... Args>
+  struct traits<R(*)(Args...) noexcept> {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
+  };
+  template <typename R, typename... Args>
+  struct traits<std::function<R(Args...)>> {
+    using ReturnType = R; using ArgumentTypesAsTuple = std::tuple<Args...>;
+    using OriginalFunctionType = std::function<R(Args...)>;
+    using StoredFunctionType = std::function<void(std::decay_t<Args>...)>;
   };
 
   template <typename Callback>
-  typename traits<Callback>::fn
-  to_function (Callback& cb) {
-
-    return static_cast<typename traits<Callback>::fn>(cb);
+  static typename traits<std::decay_t<Callback>>::OriginalFunctionType
+  to_original_function(Callback&& cb) {
+    return typename traits<std::decay_t<Callback>>::OriginalFunctionType(std::forward<Callback>(cb));
   }
 
-  int _listeners = 0;
+  template <typename Callback>
+  void add_listener(const std::string& name, Callback&& cb, bool is_once_flag) {
+    std::lock_guard<std::mutex> lock(mtx_);
 
-  public:
-    int maxListeners = 10;
-
-    int listeners() {
-      return this->_listeners;
+    if (++this->_listeners > this->maxListeners) {
+      std::cout
+        << "warning: possible EventEmitter memory leak detected. "
+        << this->_listeners
+        << " listeners added (max is " << this->maxListeners
+        << "). For event: " << name
+        << std::endl;
     }
 
-    template <typename Callback>
-    void on(const std::string& name, Callback cb) {
+    auto original_func = to_original_function(std::forward<Callback>(cb));
+    typename traits<std::decay_t<Callback>>::StoredFunctionType storable_func = original_func;
 
-      auto it = events.find(name);
-      if (it != events.end()) {
-        throw new std::runtime_error("duplicate listener");
+    events[name].push_back({storable_func, is_once_flag});
+  }
+
+public:
+  int maxListeners = 10;
+
+  EventEmitter() = default;
+  ~EventEmitter() = default;
+
+  EventEmitter(const EventEmitter&) = delete;
+  EventEmitter& operator=(const EventEmitter&) = delete;
+  EventEmitter(EventEmitter&&) = delete;
+  EventEmitter& operator=(EventEmitter&&) = delete;
+
+
+  int listeners() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return this->_listeners;
+  }
+
+  template <typename Callback>
+  void on(const std::string& name, Callback&& cb) {
+    add_listener(name, std::forward<Callback>(cb), false /*is_once_flag*/);
+  }
+
+  template <typename Callback>
+  void once(const std::string& name, Callback&& cb) {
+    add_listener(name, std::forward<Callback>(cb), true /*is_once_flag*/);
+  }
+
+  void off() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    events.clear();
+    this->_listeners = 0;
+  }
+
+  void off(const std::string& name) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto it = events.find(name);
+    if (it != events.end()) {
+      this->_listeners -= it->second.size();
+      events.erase(it);
+    }
+  }
+
+  template <typename... EmitArgs>
+  void emit(const std::string& name, EmitArgs&&... args) {
+    std::vector<ListenerWrapper> current_call_list;
+    bool has_any_once_listener_in_list = false;
+
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      auto map_it = events.find(name);
+      if (map_it == events.end() || map_it->second.empty()) {
+        return;
       }
+      current_call_list = map_it->second;
 
-      if (++this->_listeners >= this->maxListeners) {
-        std::cout 
-          << "warning: possible EventEmitter memory leak detected. " 
-          << this->_listeners 
-          << " listeners added. "
-          << std::endl;
-      };
-
-      auto f = to_function(cb);
-      auto fn = new decltype(f)(to_function(cb));
-      events[name] = static_cast<void*>(fn);
-    }
-
-    template <typename Callback>
-    void once(const std::string& name, Callback cb) {
-      this->on(name, cb);
-      events_once[name] = true;
-    }
-
-    void off() {
-      events.clear();
-      events_once.clear();
-      this->_listeners = 0;
-    }
-
-    void off(const std::string& name) {
-
-      auto it = events.find(name);
-
-      if (it != events.end()) {
-        events.erase(it);
-        this->_listeners--;
-
-        auto once = events_once.find(name);
-        if (once != events_once.end()) {
-          events_once.erase(once);
+      for(const auto& wrapper : current_call_list) {
+        if (wrapper.is_once) {
+          has_any_once_listener_in_list = true;
+          break;
         }
       }
     }
 
-    template <typename ...Args> 
-    void emit(std::string name, Args... args) {
+    std::tuple<EmitArgs...> captured_args_tuple(std::forward<EmitArgs>(args)...);
 
-      auto it = events.find(name);
-      if (it != events.end()) {
+    for (const auto& listener_entry : current_call_list) {
+      try {
+        using TargetFunctionType = std::function<void(std::decay_t<EmitArgs>...)>;
+        const auto& storable_func_any = listener_entry.callback;
+        const auto& storable_func = std::any_cast<const TargetFunctionType&>(storable_func_any);
 
-        auto cb = events.at(name);
-        auto fp = static_cast<std::function<void(Args...)>*>(cb);
-        (*fp)(args...);
-      }
+        std::apply([&](auto&&... tuple_args) {
+          storable_func(std::forward<decltype(tuple_args)>(tuple_args)...);
+        }, captured_args_tuple);
 
-      auto once = events_once.find(name);
-      if (once != events_once.end()) {
-        this->off(name);
+      } catch (const std::bad_any_cast& e) {
+        std::cerr << "Emit error for event '" << name << "': "
+                  << "Callback signature mismatch. Details: " << e.what()
+                  << std::endl;
+      } catch (const std::bad_function_call& e) {
+         std::cerr << "Emit error for event '" << name << "': "
+                   << "Bad function call (e.g. empty std::function). Details: " << e.what()
+                   << std::endl;
       }
     }
 
-    EventEmitter(void) {}
+    if (has_any_once_listener_in_list) {
+      std::lock_guard<std::mutex> lock(mtx_);
+      auto map_it = events.find(name);
+      if (map_it != events.end()) {
+        std::vector<ListenerWrapper>& original_listeners_ref = map_it->second;
+        std::size_t original_size = original_listeners_ref.size();
 
-    ~EventEmitter (void) {
-      events.clear();
+        original_listeners_ref.erase(
+          std::remove_if(original_listeners_ref.begin(), original_listeners_ref.end(),
+                         [](const ListenerWrapper& entry) {
+                           return entry.is_once;
+                         }),
+          original_listeners_ref.end()
+        );
+
+        std::size_t removed_count = original_size - original_listeners_ref.size();
+        this->_listeners -= removed_count;
+
+        if (original_listeners_ref.empty()) {
+          events.erase(map_it);
+        }
+      }
     }
+  }
 };
 
-#endif
+#endif // __EVENTS_H_
 
