@@ -1,0 +1,19 @@
+{
+  "name": "cxx-eventemitter",
+  "version": "0.1.0",
+  "description": "EventEmitter for C++",
+  "repo": "heapwolf/cxx-eventemitter",
+  "license": "MIT",
+  "keywords": [
+    "event",
+    "listener",
+    "eventemitter",
+    "emitter",
+    "observe",
+    "subscribe"
+  ],
+  "src": [
+    "index.hxx"
+  ],
+  "dependencies": {}
+}
