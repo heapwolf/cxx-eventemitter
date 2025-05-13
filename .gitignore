@@ -1,3 +1,4 @@
-/test/index
 perf_runner
 test_runner
+test/index.dSYM/
+perf/index.dSYM/
